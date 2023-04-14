@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"sort"
@@ -55,6 +56,8 @@ type TxMempool struct {
 	txs        *clist.CList // valid transactions (passed CheckTx)
 	txByKey    map[types.TxKey]*clist.CElement
 	txBySender map[string]*clist.CElement // for sender != ""
+
+	txOrderList [][]byte
 }
 
 // NewTxMempool constructs a new, empty priority mempool at the specified
@@ -324,6 +327,14 @@ func (txmp *TxMempool) allEntriesSorted() []*WrappedTx {
 	return all
 }
 
+func (txmp *TxMempool) SetTxOrder(txOrderList []string) {
+	txmp.txOrderList = [][]byte{}
+	for _, txHash := range txOrderList {
+		hexBytes, _ := hex.DecodeString(txHash)
+		txmp.txOrderList = append(txmp.txOrderList, hexBytes)
+	}
+}
+
 // ReapMaxBytesMaxGas returns a slice of valid transactions that fit within the
 // size and gas constraints. The results are ordered by nonincreasing priority,
 // with ties broken by increasing order of arrival.  Reaping transactions does
@@ -335,19 +346,47 @@ func (txmp *TxMempool) allEntriesSorted() []*WrappedTx {
 // If the mempool is empty or has no transactions fitting within the given
 // constraints, the result will also be empty.
 func (txmp *TxMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs {
+	// TODO: order validation and gas used.
+	fmt.Println("stompesi - ReapMaxBytesMaxGas", txmp.txOrderList)
 	var totalGas, totalBytes int64
-
 	var keep []types.Tx //nolint:prealloc
-	for _, w := range txmp.allEntriesSorted() {
-		// N.B. When computing byte size, we need to include the overhead for
-		// encoding as protobuf to send to the application.
-		totalGas += w.gasWanted
-		totalBytes += types.ComputeProtoSizeForTxs([]types.Tx{w.tx})
-		if (maxGas >= 0 && totalGas > maxGas) || (maxBytes >= 0 && totalBytes > maxBytes) {
-			break
-		}
-		keep = append(keep, w.tx)
-	}
+	// if (txmp.txOrderList != nil) {
+	// 	txs := txmp.allEntriesSorted()
+	// 	for _, txHash := range txmp.txOrderList {
+	// 		for _, tx := range txs {
+	// 			if bytes.Equal(tx.hash[:], txHash) {
+	// 				keep = append(keep, tx.tx)
+	// 				break
+	// 			}
+	// 		}	
+	// 	}
+
+	// 	//TODO: remove
+	// 	if len(txs) != 0 && len(txmp.txOrderList) == 0 {
+	// 		for _, w := range txmp.allEntriesSorted() {
+	// 			// N.B. When computing byte size, we need to include the overhead for
+	// 			// encoding as protobuf to send to the application.
+	// 			totalGas += w.gasWanted
+	// 			totalBytes += types.ComputeProtoSizeForTxs([]types.Tx{w.tx})
+	// 			if (maxGas >= 0 && totalGas > maxGas) || (maxBytes >= 0 && totalBytes > maxBytes) {
+	// 				break
+	// 			}
+	// 			keep = append(keep, w.tx)
+	// 		}		
+	// 	}
+	// }  else {
+		for _, w := range txmp.allEntriesSorted() {
+			// N.B. When computing byte size, we need to include the overhead for
+			// encoding as protobuf to send to the application.
+			totalGas += w.gasWanted
+			totalBytes += types.ComputeProtoSizeForTxs([]types.Tx{w.tx})
+			if (maxGas >= 0 && totalGas > maxGas) || (maxBytes >= 0 && totalBytes > maxBytes) {
+				break
+			}
+			keep = append(keep, w.tx)
+		}		
+	// }
+	
 	return keep
 }
 

@@ -27,6 +27,7 @@ import (
 	"github.com/rollkit/rollkit/mempool"
 	mempoolv1 "github.com/rollkit/rollkit/mempool/v1"
 	"github.com/rollkit/rollkit/p2p"
+	"github.com/rollkit/rollkit/sequencing"
 	"github.com/rollkit/rollkit/state/indexer"
 	blockidxkv "github.com/rollkit/rollkit/state/indexer/block/kv"
 	"github.com/rollkit/rollkit/state/txindex"
@@ -71,6 +72,8 @@ type FullNode struct {
 	Store        store.Store
 	blockManager *block.Manager
 	dalc         da.DataAvailabilityLayerClient
+
+	sequencer         sequencing.SequencingLayerClient
 
 	TxIndexer      txindex.TxIndexer
 	BlockIndexer   indexer.BlockIndexer
@@ -135,6 +138,15 @@ func newFullNode(
 		return nil, fmt.Errorf("data availability layer client initialization error: %w", err)
 	}
 
+	sequencer := registry.GetSeqeucningLayerClient(conf.SequencerType)
+	if sequencer == nil {
+		return nil, fmt.Errorf("Couldn't get sequencer client named '%s'", conf.SequencerType)
+	}
+	err = sequencer.Init([]byte(conf.SequencerConfig), logger.With("module", "sequencing_client"))
+	if err != nil {
+		return nil, fmt.Errorf("Sequencing layer client initialization error: %w", err)
+	}
+
 	indexerService, txIndexer, blockIndexer, err := createAndStartIndexerService(ctx, conf, indexerKV, eventBus, logger)
 	if err != nil {
 		return nil, err
@@ -145,7 +157,7 @@ func newFullNode(
 	mp.EnableTxsAvailable()
 
 	doneBuildingChannel := make(chan struct{})
-	blockManager, err := block.NewManager(signingKey, conf.BlockManagerConfig, genesis, s, mp, appClient, dalc, eventBus, logger.With("module", "BlockManager"), doneBuildingChannel)
+	blockManager, err := block.NewManager(signingKey, conf.BlockManagerConfig, genesis, s, mp, appClient, dalc, eventBus, logger.With("module", "BlockManager"), doneBuildingChannel, sequencer)
 	if err != nil {
 		return nil, fmt.Errorf("BlockManager initialization error: %w", err)
 	}
@@ -165,6 +177,7 @@ func newFullNode(
 		P2P:               client,
 		blockManager:      blockManager,
 		dalc:              dalc,
+		sequencer: 				 sequencer,	
 		Mempool:           mp,
 		mempoolIDs:        mpIDs,
 		incomingTxCh:      make(chan *p2p.GossipMessage),
@@ -262,6 +275,11 @@ func (n *FullNode) OnStart() error {
 	if err = n.dalc.Start(); err != nil {
 		return fmt.Errorf("error while starting data availability layer client: %w", err)
 	}
+
+	if err = n.sequencer.Start(); err != nil {
+		return fmt.Errorf("error while starting sequencing layer client: %w", err)
+	}
+
 	if n.conf.Aggregator {
 		n.Logger.Info("working in aggregator mode", "block time", n.conf.BlockTime)
 		go n.blockManager.AggregationLoop(n.ctx, n.conf.LazyAggregator)

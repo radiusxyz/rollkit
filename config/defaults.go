@@ -24,6 +24,7 @@ var DefaultNodeConfig = NodeConfig{
 		BlockTime:   30 * time.Second,
 		NamespaceID: types.NamespaceID{},
 		FraudProofs: false,
+		RollupId:  "",
 	},
 	DALayer:  "mock",
 	DAConfig: "",
@@ -31,4 +32,6 @@ var DefaultNodeConfig = NodeConfig{
 	HeaderConfig: HeaderConfig{
 		TrustedHash: "",
 	},
+	SequencerType: "local",
+	SequencerConfig:  "",
 }

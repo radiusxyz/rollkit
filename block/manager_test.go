@@ -16,6 +16,8 @@ import (
 	"github.com/rollkit/rollkit/config"
 	"github.com/rollkit/rollkit/da"
 	mockda "github.com/rollkit/rollkit/da/mock"
+	"github.com/rollkit/rollkit/sequencing"
+	local_seqeuncer "github.com/rollkit/rollkit/sequencing/local"
 	"github.com/rollkit/rollkit/store"
 	"github.com/rollkit/rollkit/types"
 )
@@ -80,8 +82,9 @@ func TestInitialState(t *testing.T) {
 			assert := assert.New(t)
 			logger := log.TestingLogger()
 			dalc := getMockDALC(logger)
+			sequencer := getMockSequencer(logger)
 			dumbChan := make(chan struct{})
-			agg, err := NewManager(key, conf, c.genesis, c.store, nil, nil, dalc, nil, logger, dumbChan)
+			agg, err := NewManager(key, conf, c.genesis, c.store, nil, nil, dalc, nil, logger, dumbChan, sequencer)
 			assert.NoError(err)
 			assert.NotNil(agg)
 			assert.Equal(c.expectedChainID, agg.lastState.ChainID)
@@ -96,6 +99,13 @@ func getMockDALC(logger log.Logger) da.DataAvailabilityLayerClient {
 	_ = dalc.Init([8]byte{}, nil, nil, logger)
 	_ = dalc.Start()
 	return dalc
+}
+
+func getMockSequencer(logger log.Logger) sequencing.SequencingLayerClient {
+	sequencer := &local_seqeuncer.SequencingLayerClient{}
+	_ = sequencer.Init(nil, logger)
+	_ = sequencer.Start()
+	return sequencer
 }
 
 // copied from store_test.go

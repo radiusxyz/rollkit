@@ -1,0 +1,29 @@
+syntax = "proto3";
+package sequencer;
+
+enum StatusCode {
+	STATUS_CODE_UNSPECIFIED = 0;
+	STATUS_CODE_SUCCESS = 1;
+	STATUS_CODE_IVALID_SIGNATURE = 2;
+	STATUS_CODE_ERROR   = 3;
+}
+
+message SequencingResponse {
+	StatusCode code = 1;
+  string message = 2;
+}
+
+message RequestGetTxOrderList {
+	string rollup_id = 1;
+  uint64 height = 2;
+  bytes signature = 3;
+}
+
+message ResponseGetTxOrderList {
+	SequencingResponse result = 1;
+	repeated string tx_order_list = 2;
+}
+
+service SequencingService {
+	rpc GetTxOrder(RequestGetTxOrderList) returns (ResponseGetTxOrderList) {}
+}

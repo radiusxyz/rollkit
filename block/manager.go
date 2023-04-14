@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/rollkit/rollkit/da"
 	"github.com/rollkit/rollkit/log"
 	"github.com/rollkit/rollkit/mempool"
+	"github.com/rollkit/rollkit/sequencing"
 	"github.com/rollkit/rollkit/state"
 	"github.com/rollkit/rollkit/store"
 	"github.com/rollkit/rollkit/types"
@@ -78,6 +80,8 @@ type Manager struct {
 	buildingBlock     bool
 	txsAvailable      <-chan struct{}
 	doneBuildingBlock chan struct{}
+
+	sequencer      sequencing.SequencingLayerClient
 }
 
 // getInitialState tries to load lastState from Store, and if it's not available it reads GenesisDoc.
@@ -101,6 +105,7 @@ func NewManager(
 	eventBus *tmtypes.EventBus,
 	logger log.Logger,
 	doneBuildingCh chan struct{},
+	sequencer sequencing.SequencingLayerClient,
 ) (*Manager, error) {
 	s, err := getInitialState(store, genesis)
 	if err != nil {
@@ -161,6 +166,8 @@ func NewManager(
 		txsAvailable:      txsAvailableCh,
 		doneBuildingBlock: doneBuildingCh,
 		buildingBlock:     false,
+
+		sequencer: 	 sequencer,
 	}
 	agg.retrieveCond = sync.NewCond(agg.retrieveMtx)
 
@@ -173,6 +180,11 @@ func getAddress(key crypto.PrivKey) ([]byte, error) {
 		return nil, err
 	}
 	return tmcrypto.AddressHash(rawKey), nil
+}
+
+// SetSequencer is used to set SequencingLayerClient used by Manager.
+func (m *Manager) SetSequencer(sequencer sequencing.SequencingLayerClient) {
+	m.sequencer = sequencer
 }
 
 // SetDALC is used to set DataAvailabilityLayerClient used by Manager.
@@ -519,6 +531,8 @@ func (m *Manager) publishBlock(ctx context.Context) error {
 		block = pendingBlock
 	} else {
 		m.logger.Info("Creating and publishing block", "height", newHeight)
+
+		m.setTxOrder(ctx, newHeight)
 		block = m.executor.CreateBlock(newHeight, lastCommit, lastHeaderHash, m.lastState)
 		m.logger.Debug("block info", "num_tx", len(block.Data.Txs))
 
@@ -599,6 +613,35 @@ func (m *Manager) publishBlock(ctx context.Context) error {
 	m.HeaderCh <- &block.SignedHeader
 
 	m.logger.Debug("successfully proposed block", "proposer", hex.EncodeToString(block.SignedHeader.ProposerAddress), "height", block.SignedHeader.Height())
+
+	return nil
+}
+
+func (m *Manager) setTxOrder(ctx context.Context, height uint64) error {
+	strNum := strconv.FormatUint(height, 10)
+	strConcat := m.conf.RollupId + strNum
+	requestBytes := []byte(strConcat)
+
+	fmt.Println("m.conf.RollupId", m.conf.RollupId)
+	fmt.Println(strNum, strConcat, requestBytes)
+	pub, _ := m.proposerKey.GetPublic().Raw()
+	fmt.Println("stompesi - pubkey", hex.EncodeToString(pub))
+
+	signature, err := m.proposerKey.Sign(requestBytes)
+	if err != nil {
+		return err
+	}
+
+	res := m.sequencer.GetTxOrder(ctx, m.conf.RollupId, height, signature)
+
+	if res.BaseResult.Code == sequencing.StatusSuccess {
+			fmt.Println("stompesi", requestBytes, res)
+			m.logger.Info("Successfully get tx order from sequencing layer", "rollupId", m.conf.RollupId, "rollkitHeight", height)
+			m.executor.SetTxOrder(res.TxOrderList)
+		} else {
+			// TODO: 
+			m.logger.Error("Sequencing layer get tx order failed", "error", res.BaseResult.Message)
+		}
 
 	return nil
 }

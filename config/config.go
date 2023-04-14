@@ -22,6 +22,10 @@ const (
 	flagLight          = "rollkit.light"
 	flagTrustedHash    = "rollkit.trusted_hash"
 	flagLazyAggregator = "rollkit.lazy_aggregator"
+
+	flagRollupId 			 = "sequencing_layer.rollup_id"
+	flagSequencerType  = "sequencing_layer.sequencer_type"
+	flagSequencerConfig = "sequencing_layer.sequencer_config"
 )
 
 // NodeConfig stores Rollkit node configuration.
@@ -39,6 +43,9 @@ type NodeConfig struct {
 	Light              bool   `mapstructure:"light"`
 	HeaderConfig       `mapstructure:",squash"`
 	LazyAggregator     bool `mapstructure:"lazy_aggregator"`
+
+	SequencerType            string `mapstructure:"sequencing_layer"`
+	SequencerConfig           string `mapstructure:"sequencing_config"`
 }
 
 // HeaderConfig allows node to pass the initial trusted header hash to start the header exchange service
@@ -56,6 +63,8 @@ type BlockManagerConfig struct {
 	DAStartHeight uint64            `mapstructure:"da_start_height"`
 	NamespaceID   types.NamespaceID `mapstructure:"namespace_id"`
 	FraudProofs   bool              `mapstructure:"fraud_proofs"`
+	
+	RollupId string `mapstructure:"rollup_id"`
 }
 
 // GetViperConfig reads configuration parameters from Viper instance.
@@ -72,6 +81,11 @@ func (nc *NodeConfig) GetViperConfig(v *viper.Viper) error {
 	nsID := v.GetString(flagNamespaceID)
 	nc.FraudProofs = v.GetBool(flagFraudProofs)
 	nc.Light = v.GetBool(flagLight)
+
+	nc.RollupId = v.GetString(flagRollupId)
+	nc.SequencerType = v.GetString(flagSequencerType)
+	nc.SequencerConfig = v.GetString(flagSequencerConfig)
+
 	bytes, err := hex.DecodeString(nsID)
 	if err != nil {
 		return err
@@ -97,4 +111,8 @@ func AddFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool(flagFraudProofs, def.FraudProofs, "enable fraud proofs (experimental & insecure)")
 	cmd.Flags().Bool(flagLight, def.Light, "run light client")
 	cmd.Flags().String(flagTrustedHash, def.TrustedHash, "initial trusted hash to start the header exchange service")
+
+	cmd.Flags().String(flagRollupId, def.RollupId, "rollup id")
+	cmd.Flags().String(flagSequencerType, def.SequencerType, "Sequencing Layer Client name (local or remote")
+	cmd.Flags().String(flagSequencerConfig, def.SequencerConfig, "Sequencing Layer Client config")
 }

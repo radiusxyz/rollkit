@@ -91,6 +91,10 @@ func (e *BlockExecutor) InitChain(genesis *tmtypes.GenesisDoc) (*abci.ResponseIn
 	})
 }
 
+func (e *BlockExecutor) SetTxOrder(txOrderList []string){
+	e.mempool.SetTxOrder(txOrderList)
+}
+
 // CreateBlock reaps transactions from mempool and builds a block.
 func (e *BlockExecutor) CreateBlock(height uint64, lastCommit *types.Commit, lastHeaderHash types.Hash, state types.State) *types.Block {
 	maxBytes := state.ConsensusParams.Block.MaxBytes
