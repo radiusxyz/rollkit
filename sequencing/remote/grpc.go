@@ -9,9 +9,19 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/rollkit/rollkit/log"
+	"github.com/rollkit/rollkit/proto/pb/sequencer"
 	"github.com/rollkit/rollkit/sequencing"
-	"github.com/rollkit/rollkit/types/pb/sequencer"
 )
+
+// SequencingLayerClient is a generic client that proxies all DA requests via gRPC.
+type SequencingLayerClient struct {
+	config Config
+
+	conn   *grpc.ClientConn
+	client sequencer.SequencingServiceClient
+
+	logger log.Logger
+}
 
 // Config contains configuration options for SeqeuncingLayerClient.
 type Config struct {
@@ -23,16 +33,6 @@ type Config struct {
 var DefaultConfig = Config{
 	Host: "127.0.0.1",
 	Port: 7000,
-}
-
-// SequencingLayerClient is a generic client that proxies all DA requests via gRPC.
-type SequencingLayerClient struct {
-	config Config
-
-	conn   *grpc.ClientConn
-	client sequencer.SequencingServiceClient
-
-	logger log.Logger
 }
 
 var _ sequencing.SequencingLayerClient = &SequencingLayerClient{}
@@ -61,6 +61,8 @@ func (sequencerLayerClient *SequencingLayerClient) Start() error {
 		return err
 	}
 
+	fmt.Println("stompesi - grpc Start run")
+
 	sequencerLayerClient.client = sequencer.NewSequencingServiceClient(sequencerLayerClient.conn)
 	return nil
 }
@@ -72,16 +74,16 @@ func (sequencerLayerClient *SequencingLayerClient) Stop() error {
 }
 
 // GetTxOrder queries Sequencing layer to sequencer server for checking tx order.
-func (sequencerLayerClient *SequencingLayerClient) GetTxOrder(ctx context.Context, rollupId string, height uint64, signature []byte) sequencing.ResultGetTxOrderList {
-	fmt.Println("stompesi", rollupId, height, signature)
-	resp, err := sequencerLayerClient.client.GetTxOrder(ctx, &sequencer.RequestGetTxOrderList{
+func (sequencerLayerClient *SequencingLayerClient) GetTxOrderList(ctx context.Context, rollupId string, height uint64, signature []byte) sequencing.ResultGetTxOrderList {
+	fmt.Println("stompesi - GetTxOrderList", "rollupId", rollupId, "height", height)
+	
+	resp, err := sequencerLayerClient.client.GetTxOrderList(ctx, &sequencer.RequestGetTxOrderList{
 		RollupId: rollupId, 
 		Height: height, 
 		Signature: signature,
 	})
 
 	if err != nil {
-		fmt.Println("stompesi - GetTxOrder", err)
 		return sequencing.ResultGetTxOrderList{
 			BaseResult: sequencing.BaseResult{
 				Code: sequencing.StatusError, 

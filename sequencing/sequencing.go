@@ -2,6 +2,7 @@ package sequencing
 
 import (
 	"context"
+
 	"github.com/rollkit/rollkit/log"
 )
 
@@ -33,5 +34,5 @@ type SequencingLayerClient interface {
 	Init(config []byte, logger log.Logger) error
 	Start() error
 	Stop() error
-	GetTxOrder(ctx context.Context, rollupId string, height uint64, signature []byte) ResultGetTxOrderList
+	GetTxOrderList(ctx context.Context, rollupId string, height uint64, signature []byte) ResultGetTxOrderList
 }

@@ -45,8 +45,8 @@ func (sequencerLayerClient *SequencingLayerClient) Stop() error {
 	return nil
 }
 
-// GetTxOrder queries Sequencing layer to check tx order
-func (sequencerLayerClient *SequencingLayerClient) GetTxOrder(ctx context.Context, rollupId string, height uint64, signature []byte) sequencing.ResultGetTxOrderList {
+// GetTxOrderList queries Sequencing layer to check tx order
+func (sequencerLayerClient *SequencingLayerClient) GetTxOrderList(ctx context.Context, rollupId string, height uint64, signature []byte) sequencing.ResultGetTxOrderList {
 	return sequencing.ResultGetTxOrderList{
 		BaseResult: sequencing.BaseResult{Code: sequencing.StatusSuccess}, 
 		TxOrderList: nil,

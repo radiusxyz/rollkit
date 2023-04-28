@@ -622,17 +622,19 @@ func (m *Manager) setTxOrder(ctx context.Context, height uint64) error {
 	strConcat := m.conf.RollupId + strNum
 	requestBytes := []byte(strConcat)
 
-	fmt.Println("m.conf.RollupId", m.conf.RollupId)
-	fmt.Println(strNum, strConcat, requestBytes)
 	pub, _ := m.proposerKey.GetPublic().Raw()
-	fmt.Println("stompesi - pubkey", hex.EncodeToString(pub))
+	
 
 	signature, err := m.proposerKey.Sign(requestBytes)
 	if err != nil {
 		return err
 	}
 
-	res := m.sequencer.GetTxOrder(ctx, m.conf.RollupId, height, signature)
+	res := m.sequencer.GetTxOrderList(ctx, m.conf.RollupId, height, signature)
+
+	fmt.Println("setTxOrder - RollupId", m.conf.RollupId)
+	fmt.Println("stompesi - pubkey", hex.EncodeToString(pub))
+	fmt.Println("stompesi - response", res)
 
 	if res.BaseResult.Code == sequencing.StatusSuccess {
 			fmt.Println("stompesi", requestBytes, res)

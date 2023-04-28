@@ -4,7 +4,7 @@ package sequencer;
 enum StatusCode {
 	STATUS_CODE_UNSPECIFIED = 0;
 	STATUS_CODE_SUCCESS = 1;
-	STATUS_CODE_IVALID_SIGNATURE = 2;
+	STATUS_CODE_INVALID_SIGNATURE = 2;
 	STATUS_CODE_ERROR   = 3;
 }
 
@@ -25,5 +25,5 @@ message ResponseGetTxOrderList {
 }
 
 service SequencingService {
-	rpc GetTxOrder(RequestGetTxOrderList) returns (ResponseGetTxOrderList) {}
+	rpc GetTxOrderList(RequestGetTxOrderList) returns (ResponseGetTxOrderList) {}
 }
