@@ -13,6 +13,7 @@ var sequencingLayerClients = map[string]func() sequencing.SequencingLayerClient{
 	"remote":     func() sequencing.SequencingLayerClient { return &remote_sequencing.SequencingLayerClient{} },
 }
 
+// TODO: stompesi
 // GetClient returns client identified by name.
 func GetSeqeucningLayerClient(name string) sequencing.SequencingLayerClient {
 	f, ok := sequencingLayerClients[name]

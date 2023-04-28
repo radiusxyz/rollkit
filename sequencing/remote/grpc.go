@@ -23,6 +23,7 @@ type SequencingLayerClient struct {
 	logger log.Logger
 }
 
+// TODO: stompesi
 // Config contains configuration options for SeqeuncingLayerClient.
 type Config struct {
 	Host string `json:"host"`
@@ -37,6 +38,7 @@ var DefaultConfig = Config{
 
 var _ sequencing.SequencingLayerClient = &SequencingLayerClient{}
 
+// TODO: stompesi
 // Init sets the configuration options.
 func (sequencerLayerClient *SequencingLayerClient) Init(config []byte, logger log.Logger) error {
 	sequencerLayerClient.logger = logger

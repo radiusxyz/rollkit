@@ -81,6 +81,7 @@ type Manager struct {
 	txsAvailable      <-chan struct{}
 	doneBuildingBlock chan struct{}
 
+	// TODO: stompesi
 	sequencer      sequencing.SequencingLayerClient
 }
 
@@ -630,12 +631,14 @@ func (m *Manager) setTxOrder(ctx context.Context, height uint64) error {
 		return err
 	}
 
+	//TODO: stompesi 
 	res := m.sequencer.GetTxOrderList(ctx, m.conf.RollupId, height, signature)
 
 	fmt.Println("setTxOrder - RollupId", m.conf.RollupId)
 	fmt.Println("stompesi - pubkey", hex.EncodeToString(pub))
 	fmt.Println("stompesi - response", res)
 
+	//TODO: merge res.TxOrderList / deterministic ordering
 	if res.BaseResult.Code == sequencing.StatusSuccess {
 			fmt.Println("stompesi", requestBytes, res)
 			m.logger.Info("Successfully get tx order from sequencing layer", "rollupId", m.conf.RollupId, "rollkitHeight", height)

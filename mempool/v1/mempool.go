@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"reflect"
@@ -57,6 +58,7 @@ type TxMempool struct {
 	txByKey    map[types.TxKey]*clist.CElement
 	txBySender map[string]*clist.CElement // for sender != ""
 
+	//TODO: stompesi
 	txOrderList [][]byte
 }
 
@@ -347,34 +349,36 @@ func (txmp *TxMempool) SetTxOrder(txOrderList []string) {
 // constraints, the result will also be empty.
 func (txmp *TxMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs {
 	// TODO: order validation and gas used.
+
 	fmt.Println("stompesi - ReapMaxBytesMaxGas", txmp.txOrderList)
+	
 	var totalGas, totalBytes int64
 	var keep []types.Tx //nolint:prealloc
-	// if (txmp.txOrderList != nil) {
-	// 	txs := txmp.allEntriesSorted()
-	// 	for _, txHash := range txmp.txOrderList {
-	// 		for _, tx := range txs {
-	// 			if bytes.Equal(tx.hash[:], txHash) {
-	// 				keep = append(keep, tx.tx)
-	// 				break
-	// 			}
-	// 		}	
-	// 	}
+	if (txmp.txOrderList != nil) {
+		txs := txmp.allEntriesSorted()
+		for _, txHash := range txmp.txOrderList {
+			for _, tx := range txs {
+				if bytes.Equal(tx.hash[:], txHash) {
+					keep = append(keep, tx.tx)
+					break
+				}
+			}	
+		}
 
-	// 	//TODO: remove
-	// 	if len(txs) != 0 && len(txmp.txOrderList) == 0 {
-	// 		for _, w := range txmp.allEntriesSorted() {
-	// 			// N.B. When computing byte size, we need to include the overhead for
-	// 			// encoding as protobuf to send to the application.
-	// 			totalGas += w.gasWanted
-	// 			totalBytes += types.ComputeProtoSizeForTxs([]types.Tx{w.tx})
-	// 			if (maxGas >= 0 && totalGas > maxGas) || (maxBytes >= 0 && totalBytes > maxBytes) {
-	// 				break
-	// 			}
-	// 			keep = append(keep, w.tx)
-	// 		}		
-	// 	}
-	// }  else {
+		//TODO: stompesi remove
+		if len(txs) != 0 && len(txmp.txOrderList) == 0 {
+			for _, w := range txmp.allEntriesSorted() {
+				// N.B. When computing byte size, we need to include the overhead for
+				// encoding as protobuf to send to the application.
+				totalGas += w.gasWanted
+				totalBytes += types.ComputeProtoSizeForTxs([]types.Tx{w.tx})
+				if (maxGas >= 0 && totalGas > maxGas) || (maxBytes >= 0 && totalBytes > maxBytes) {
+					break
+				}
+				keep = append(keep, w.tx)
+			}		
+		}
+	}  else {
 		for _, w := range txmp.allEntriesSorted() {
 			// N.B. When computing byte size, we need to include the overhead for
 			// encoding as protobuf to send to the application.
@@ -385,7 +389,7 @@ func (txmp *TxMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs {
 			}
 			keep = append(keep, w.tx)
 		}		
-	// }
+	}
 	
 	return keep
 }

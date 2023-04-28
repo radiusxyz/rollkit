@@ -138,10 +138,13 @@ func newFullNode(
 		return nil, fmt.Errorf("data availability layer client initialization error: %w", err)
 	}
 
+	// TODO: stompesi
 	sequencer := registry.GetSeqeucningLayerClient(conf.SequencerType)
 	if sequencer == nil {
 		return nil, fmt.Errorf("Couldn't get sequencer client named '%s'", conf.SequencerType)
 	}
+
+	// TODO: stompesi - make multi sequencer
 	err = sequencer.Init([]byte(conf.SequencerConfig), logger.With("module", "sequencing_client"))
 	if err != nil {
 		return nil, fmt.Errorf("Sequencing layer client initialization error: %w", err)
